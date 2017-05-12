@@ -27,6 +27,7 @@
 @property (strong, nonatomic) NSURL *videoURL;
 
 //Player and PlayerItem
+static const NSString *ItemStatusContext;
 @property (strong, nonatomic) AVPlayer *player;
 @property (strong, nonatomic) AVPlayerItem *playerItem;
 
