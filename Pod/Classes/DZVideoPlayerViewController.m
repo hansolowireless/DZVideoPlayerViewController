@@ -8,7 +8,6 @@
 
 #import "DZVideoPlayerViewController.h"
 
-static const NSString *ItemStatusContext;
 static const NSString *PlayerRateContext;
 static const NSString *PlayerStatusContext;
 
