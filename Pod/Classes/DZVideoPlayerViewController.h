@@ -26,6 +26,10 @@
 
 @property (strong, nonatomic) NSURL *videoURL;
 
+//Player and PlayerItem
+@property (strong, nonatomic) AVPlayer *player;
+@property (strong, nonatomic) AVPlayerItem *playerItem;
+
 // Readonly properties
 @property (readonly, nonatomic) NSTimeInterval currentPlaybackTime;
 @property (readonly, nonatomic) NSTimeInterval currentPlayerItemDuration;
