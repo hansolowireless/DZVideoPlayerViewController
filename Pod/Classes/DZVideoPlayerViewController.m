@@ -17,8 +17,6 @@ static const NSString *PlayerStatusContext;
     BOOL _isFullscreen;
     BOOL _isMuted;
 }
-@property (strong, nonatomic) AVPlayer *player;
-@property (strong, nonatomic) AVPlayerItem *playerItem;
 
 @property (assign, nonatomic) BOOL isSeeking;
 @property (assign, nonatomic) BOOL isControlsHidden;
