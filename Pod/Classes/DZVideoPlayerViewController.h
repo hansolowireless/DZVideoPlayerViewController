@@ -30,6 +30,7 @@
 static const NSString *ItemStatusContext;
 @property (strong, nonatomic) AVPlayer *player;
 @property (strong, nonatomic) AVPlayerItem *playerItem;
+@property (strong, nonatomic) AVURLAsset *asset;
 
 // Readonly properties
 @property (readonly, nonatomic) NSTimeInterval currentPlaybackTime;
