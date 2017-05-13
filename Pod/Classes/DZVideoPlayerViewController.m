@@ -231,7 +231,11 @@ static const NSString *PlayerStatusContext;
         [self.playerItem removeObserver:self forKeyPath:@"status" context:&ItemStatusContext];
     }
     
-    AVURLAsset *asset = [[AVURLAsset alloc] initWithURL:self.videoURL options:nil];
+    if (self.asset) {
+        self.asset = nil
+    }
+  
+    self.asset = [[AVURLAsset alloc] initWithURL:self.videoURL options:nil];
     NSString *playableKey = @"playable";
     
     [asset loadValuesAsynchronouslyForKeys:@[playableKey] completionHandler:^{
@@ -246,10 +250,14 @@ static const NSString *PlayerStatusContext;
                                      options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew
                                      context:&ItemStatusContext];
                 
-                if( self.player != nil ) {
-                    [self.player replaceCurrentItemWithPlayerItem:self.playerItem];
-                }
-                else {
+//                if( self.player != nil ) {
+//                    [self.player replaceCurrentItemWithPlayerItem:self.playerItem];
+//                }
+//                else {
+//                   [self setupPlayer];
+//                }
+                
+                if self.player == nil {
                     [self setupPlayer];
                 }
                 
