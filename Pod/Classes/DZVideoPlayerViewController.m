@@ -252,9 +252,9 @@
                    [self setupPlayer];
                 }
                 
-                if (playAutomatically) {
-                    [self play];
-                }
+  //              if (playAutomatically) {
+  //                  [self play];
+  //              }
             }
             else {
                 // You should deal with the error appropriately.
@@ -761,6 +761,9 @@
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
     if (context == &ItemStatusContext) {
 //        AVPlayerItemStatus status = [change[NSKeyValueChangeNewKey] integerValue];
+        if (self.player.currentItem.status == AVPlayerItemStatusReadyToPlay) {
+                   [self play];
+                   }
         dispatch_async(dispatch_get_main_queue(),
                        ^{
                            [self syncUI];
