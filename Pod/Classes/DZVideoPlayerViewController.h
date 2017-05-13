@@ -60,7 +60,7 @@ static const NSString *ItemStatusContext;
 
 + (NSString *)nibNameForStyle:(DZVideoPlayerViewControllerStyle)style;
 
-- (void)prepareAndPlayAutomatically:(BOOL)playAutomatically;
+- (void)prepareAndPlayAutomatically:(BOOL)playAutomatically withAsset: (AVURLAsset *)videoAsset;
 
 - (void)play;
 
