@@ -232,19 +232,19 @@ static const NSString *PlayerStatusContext;
     }
     
     if (self.asset) {
-        self.asset = nil
+        self.asset = nil;
     }
   
     self.asset = [[AVURLAsset alloc] initWithURL:self.videoURL options:nil];
     NSString *playableKey = @"playable";
     
-    [asset loadValuesAsynchronouslyForKeys:@[playableKey] completionHandler:^{
+    [_asset loadValuesAsynchronouslyForKeys:@[playableKey] completionHandler:^{
         dispatch_async(dispatch_get_main_queue(), ^{
             NSError *error;
-            AVKeyValueStatus status = [asset statusOfValueForKey:playableKey error:&error];
+            AVKeyValueStatus status = [_asset statusOfValueForKey:playableKey error:&error];
             
             if (status == AVKeyValueStatusLoaded) {
-                self.playerItem = [AVPlayerItem playerItemWithAsset:asset];
+                self.playerItem = [AVPlayerItem playerItemWithAsset:_asset];
                 // ensure that this is done before the playerItem is associated with the player
                 [self.playerItem addObserver:self forKeyPath:@"status"
                                      options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew
