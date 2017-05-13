@@ -8,9 +8,6 @@
 
 #import "DZVideoPlayerViewController.h"
 
-static const NSString *PlayerRateContext;
-static const NSString *PlayerStatusContext;
-
 @interface DZVideoPlayerViewController ()
 {
     BOOL _isFullscreen;
