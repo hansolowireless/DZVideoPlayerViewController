@@ -18,6 +18,7 @@
 #import "DZProgressIndicatorSlider.h"
 #import "DZVideoPlayerViewControllerContainerView.h"
 
+static const NSString *ItemStatusContext;
 
 @interface DZVideoPlayerViewController : UIViewController
 @property (weak, nonatomic) id<DZVideoPlayerViewControllerDelegate> delegate;
@@ -27,7 +28,6 @@
 @property (strong, nonatomic) NSURL *videoURL;
 
 //Player and PlayerItem
-static const NSString *ItemStatusContext;
 @property (strong, nonatomic) AVPlayer *player;
 @property (strong, nonatomic) AVPlayerItem *playerItem;
 @property (strong, nonatomic) AVURLAsset *asset;
