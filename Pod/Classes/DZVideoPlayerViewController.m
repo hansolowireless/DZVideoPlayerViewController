@@ -230,10 +230,6 @@ static const NSString *PlayerStatusContext;
     if (self.playerItem) {
         [self.playerItem removeObserver:self forKeyPath:@"status" context:&ItemStatusContext];
     }
-    
-    if (self.asset) {
-        self.asset = nil;
-    }
   
 //    self.asset = [[AVURLAsset alloc] initWithURL:self.videoURL options:nil];
     self.asset = videoAsset;
