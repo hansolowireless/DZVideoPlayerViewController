@@ -506,6 +506,9 @@ static const NSString *PlayerStatusContext;
         [self hideControls];
     }
     [self stopIdleCountdown];
+    if (!self.isControlsHidden) {
+        [self startIdleCountdown];
+    }
 }
 
 - (void)updateNowPlayingInfo {
