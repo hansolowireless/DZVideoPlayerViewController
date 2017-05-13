@@ -19,6 +19,8 @@
 #import "DZVideoPlayerViewControllerContainerView.h"
 
 static const NSString *ItemStatusContext;
+static const NSString *PlayerRateContext;
+static const NSString *PlayerStatusContext;
 
 @interface DZVideoPlayerViewController : UIViewController
 @property (weak, nonatomic) id<DZVideoPlayerViewControllerDelegate> delegate;
