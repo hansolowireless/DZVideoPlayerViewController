@@ -104,6 +104,8 @@ static const NSString *ItemStatusContext;
 
 - (void)resetNowPlayingInfo;
 
+- (void)setupPlayer;
+
 - (NSMutableDictionary *)gatherNowPlayingInfo;
 
 - (void)onFailedToLoadAssetWithError:(NSError*)error;
