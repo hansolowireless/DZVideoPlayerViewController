@@ -257,7 +257,7 @@ static const NSString *PlayerStatusContext;
 //                   [self setupPlayer];
 //                }
                 
-                if self.player == nil {
+                if (self.player == nil) {
                     [self setupPlayer];
                 }
                 
