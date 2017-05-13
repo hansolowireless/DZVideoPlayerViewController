@@ -219,7 +219,7 @@ static const NSString *PlayerStatusContext;
 
 #pragma mark - Public Actions
 
-- (void)prepareAndPlayAutomatically:(BOOL)playAutomatically {
+- (void)prepareAndPlayAutomatically:(BOOL)playAutomatically withAsset: (AVURLAsset *)videoAsset {
     
     [self.activityIndicatorView startAnimating];
     
@@ -235,7 +235,9 @@ static const NSString *PlayerStatusContext;
         self.asset = nil;
     }
   
-    self.asset = [[AVURLAsset alloc] initWithURL:self.videoURL options:nil];
+//    self.asset = [[AVURLAsset alloc] initWithURL:self.videoURL options:nil];
+    self.asset = videoAsset;
+
     NSString *playableKey = @"playable";
     
     [_asset loadValuesAsynchronouslyForKeys:@[playableKey] completionHandler:^{
