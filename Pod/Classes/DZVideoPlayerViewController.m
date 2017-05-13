@@ -248,15 +248,11 @@ static const NSString *PlayerStatusContext;
                                      options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew
                                      context:&ItemStatusContext];
                 
-//                if( self.player != nil ) {
-//                    [self.player replaceCurrentItemWithPlayerItem:self.playerItem];
-//                }
-//                else {
-//                   [self setupPlayer];
-//                }
-                
-                if (self.player == nil) {
-                    [self setupPlayer];
+                if( self.player != nil ) {
+                   [self.player replaceCurrentItemWithPlayerItem:self.playerItem];
+                }
+                else {
+                   [self setupPlayer];
                 }
                 
                 if (playAutomatically) {
