@@ -8,6 +8,12 @@
 
 #import "DZVideoPlayerViewController.h"
 
+static const NSString *ItemStatusContext;
+static const NSString *PlayerRateContext;
+static const NSString *PlayerStatusContext;
+static const NSString *ItemLoadedRangesContext;
+static const NSString *TimeControlStatusContext;
+
 @interface DZVideoPlayerViewController ()
 {
     BOOL _isFullscreen;
@@ -551,6 +557,12 @@
     [self.player addObserver:self forKeyPath:@"status"
                      options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew context:&PlayerStatusContext];
     
+    //Added Test
+    #if __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000
+    [self.player addObserver:self forKeyPath:@"timeControlStatus"
+                     options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew context:&TimeControlStatusContext];
+    #endif
+    
     DZVideoPlayerViewController __weak *welf = self;
     self.playerTimeObservationTarget = [self.player addPeriodicTimeObserverForInterval:CMTimeMake(1, 1)  queue:nil usingBlock:^(CMTime time) {
         [welf updateProgressIndicator:welf];
@@ -625,6 +637,9 @@
     if( self.player != nil ) {
         [self.player removeObserver:self forKeyPath:@"rate" context:&PlayerRateContext];
         [self.player removeObserver:self forKeyPath:@"status" context:&PlayerStatusContext];
+        #if __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000
+        [self.player removeObserver:self forKeyPath:@"timeControlStatus" context:&TimeControlStatusContext];
+        #endif
     }
 }
 
@@ -762,6 +777,7 @@
     if (context == &ItemStatusContext) {
 //        AVPlayerItemStatus status = [change[NSKeyValueChangeNewKey] integerValue];
         if (self.player.currentItem.status == AVPlayerItemStatusReadyToPlay) {
+                   [self.activityIndicatorView stopAnimating];
                    [self play];
                    }
         dispatch_async(dispatch_get_main_queue(),
@@ -771,12 +787,12 @@
     }
     else if (context == &PlayerRateContext) {
         float rate = [change[NSKeyValueChangeNewKey] floatValue];
-        dispatch_async(dispatch_get_main_queue(),
-                       ^{
-                           if (rate > 0) {
-                               [self.activityIndicatorView stopAnimating];
-                           }
-                       });
+//        dispatch_async(dispatch_get_main_queue(),
+//                       ^{
+//                           if (rate > 0) {
+//                               [self.activityIndicatorView stopAnimating];
+//                           }
+//                       });
         
     }
     else if (context == &PlayerStatusContext) {
@@ -786,6 +802,11 @@
                            [self syncUI];
                        });
     }
+    #if __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000
+    else if (context == &TimeControlStatusContext) {
+        NSLog(@"Player Status waiting because %@", self.player.reasonForWaitingToPlay);
+    }
+    #endif
     else {
         // Make sure to call the superclass's implementation in the else block in case it is also implementing KVO
         [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
