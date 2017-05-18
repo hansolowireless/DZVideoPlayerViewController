@@ -13,6 +13,7 @@ static const NSString *PlayerRateContext;
 static const NSString *PlayerStatusContext;
 static const NSString *ItemLoadedRangesContext;
 static const NSString *TimeControlStatusContext;
+static const NSString *ExternalScreenContext;
 
 @interface DZVideoPlayerViewController ()
 {
@@ -31,6 +32,8 @@ static const NSString *TimeControlStatusContext;
 // Remote command center targets
 @property (strong, nonatomic) id playCommandTarget;
 @property (strong, nonatomic) id pauseCommandTarget;
+
+@property(nonatomic, weak, readwrite) UILabel *airPlayMessageLabel;
 
 @end
 
@@ -558,11 +561,14 @@ static const NSString *TimeControlStatusContext;
                      options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew context:&PlayerStatusContext];
     
     //Added Test
-    #if __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000
-    [self.player addObserver:self forKeyPath:@"timeControlStatus"
-                     options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew context:&TimeControlStatusContext];
-    #endif
+    if ([AVPlayer instancesRespondToSelector:@selector(timeControlStatus)]) {
+        [self.player addObserver:self forKeyPath:@"timeControlStatus"
+                         options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew context:&TimeControlStatusContext];
+    }
     
+    [self.player addObserver:self forKeyPath:@"externalPlaybackActive"
+                     options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew context:&TimeControlStatusContext];
+
     DZVideoPlayerViewController __weak *welf = self;
     self.playerTimeObservationTarget = [self.player addPeriodicTimeObserverForInterval:CMTimeMake(1, 1)  queue:nil usingBlock:^(CMTime time) {
         [welf updateProgressIndicator:welf];
@@ -637,9 +643,10 @@ static const NSString *TimeControlStatusContext;
     if( self.player != nil ) {
         [self.player removeObserver:self forKeyPath:@"rate" context:&PlayerRateContext];
         [self.player removeObserver:self forKeyPath:@"status" context:&PlayerStatusContext];
-        #if __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000
-        [self.player removeObserver:self forKeyPath:@"timeControlStatus" context:&TimeControlStatusContext];
-        #endif
+        if ([AVPlayer instancesRespondToSelector:@selector(timeControlStatus)]) {
+            [self.player removeObserver:self forKeyPath:@"timeControlStatus" context:&TimeControlStatusContext];
+        }
+        [self.player removeObserver:self forKeyPath:@"externalPlaybackActive" context:&TimeControlStatusContext];
     }
 }
 
@@ -802,11 +809,24 @@ static const NSString *TimeControlStatusContext;
                            [self syncUI];
                        });
     }
-    #if __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000
     else if (context == &TimeControlStatusContext) {
-        NSLog(@"Player Status waiting because %@", self.player.reasonForWaitingToPlay);
+        if ([AVPlayer instancesRespondToSelector:@selector(timeControlStatus)]) {
+            NSLog(@"Player Status waiting because %@", self.player.reasonForWaitingToPlay);
+        }
     }
-    #endif
+    else if (context == &ExternalScreenContext) {
+        if self.player.externalPlaybackActive == YES {
+            self.airPlayMessageLabel = [[UILabel] alloc] init];
+            self.airPlayMessageLabel.center = player.center;
+            self.airPlayMessageLabel.text = @"El contenido se está reproduciendo por Airplay";
+            self.airPlayMessageLabel.textColor = [UIColor whiteColor];
+            [self.playerView addSubView: self.airPlayMessageLabel];
+        }
+        else {
+            [self.airPlayMessageLabel removeFromSuperView];
+            self.airPlayMessageLabel = nil;
+        }
+    }
     else {
         // Make sure to call the superclass's implementation in the else block in case it is also implementing KVO
         [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
