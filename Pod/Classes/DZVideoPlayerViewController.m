@@ -33,7 +33,7 @@ static const NSString *ExternalScreenContext;
 @property (strong, nonatomic) id playCommandTarget;
 @property (strong, nonatomic) id pauseCommandTarget;
 
-@property(nonatomic, weak, readwrite) UILabel *airPlayMessageLabel;
+@property(nonatomic, strong) UILabel *airPlayMessageLabel;
 
 @end
 
@@ -567,7 +567,7 @@ static const NSString *ExternalScreenContext;
     }
     
     [self.player addObserver:self forKeyPath:@"externalPlaybackActive"
-                     options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew context:&TimeControlStatusContext];
+                     options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew context:&ExternalScreenContext];
 
     DZVideoPlayerViewController __weak *welf = self;
     self.playerTimeObservationTarget = [self.player addPeriodicTimeObserverForInterval:CMTimeMake(1, 1)  queue:nil usingBlock:^(CMTime time) {
@@ -646,7 +646,7 @@ static const NSString *ExternalScreenContext;
         if ([AVPlayer instancesRespondToSelector:@selector(timeControlStatus)]) {
             [self.player removeObserver:self forKeyPath:@"timeControlStatus" context:&TimeControlStatusContext];
         }
-        [self.player removeObserver:self forKeyPath:@"externalPlaybackActive" context:&TimeControlStatusContext];
+        [self.player removeObserver:self forKeyPath:@"externalPlaybackActive" context:&ExternalScreenContext];
     }
 }
 
@@ -815,16 +815,28 @@ static const NSString *ExternalScreenContext;
         }
     }
     else if (context == &ExternalScreenContext) {
-        if self.player.externalPlaybackActive == YES {
-            self.airPlayMessageLabel = [[UILabel] alloc] init];
-            self.airPlayMessageLabel.center = player.center;
-            self.airPlayMessageLabel.text = @"El contenido se está reproduciendo por Airplay";
-            self.airPlayMessageLabel.textColor = [UIColor whiteColor];
-            [self.playerView addSubView: self.airPlayMessageLabel];
+        if (self.player.externalPlaybackActive == YES) {
+            
+            dispatch_async(dispatch_get_main_queue(),
+                           ^{
+                               self.airPlayMessageLabel = [[UILabel alloc] initWithFrame:CGRectMake(100, 100, 120, 30)];
+                               self.airPlayMessageLabel.text = @"El contenido se está reproduciendo por Airplay";
+                               self.airPlayMessageLabel.textColor = [UIColor whiteColor];
+                               self.airPlayMessageLabel.backgroundColor = [UIColor clearColor];
+                               self.airPlayMessageLabel.sizeToFit;
+                               [self.airPlayMessageLabel setCenter: self.playerView.center];
+                               [self.playerView addSubview:self.airPlayMessageLabel];
+                               [self.playerView bringSubviewToFront:self.airPlayMessageLabel];
+                               NSLog(@"airplay label ADDED");
+                           });
         }
         else {
-            [self.airPlayMessageLabel removeFromSuperView];
-            self.airPlayMessageLabel = nil;
+            dispatch_async(dispatch_get_main_queue(),
+                           ^{
+                               [self.airPlayMessageLabel removeFromSuperview];
+                               self.airPlayMessageLabel = nil;
+                               NSLog(@"airplay label REMOVED");
+                           });
         }
     }
     else {
