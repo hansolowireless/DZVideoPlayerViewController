@@ -107,4 +107,7 @@
 - (NSMutableDictionary *)gatherNowPlayingInfo;
 
 - (void)onFailedToLoadAssetWithError:(NSError*)error;
+
+- (void)stopPlayingAndSeekSmoothlyToTime:(CMTime)newChaseTime;
+
 @end

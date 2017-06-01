@@ -14,6 +14,7 @@ static const NSString *PlayerStatusContext;
 static const NSString *ItemLoadedRangesContext;
 static const NSString *TimeControlStatusContext;
 static const NSString *ExternalScreenContext;
+static const NSString *StatusSeekContext;
 
 @interface DZVideoPlayerViewController ()
 {
@@ -34,6 +35,9 @@ static const NSString *ExternalScreenContext;
 @property (strong, nonatomic) id pauseCommandTarget;
 
 @property(nonatomic, strong) UILabel *airPlayMessageLabel;
+@property(nonatomic, readwrite) CMTime chaseTime;
+@property (assign, nonatomic) BOOL isSmoothlySeeking;
+@property (assign, nonatomic) BOOL addedSeekObserver;
 
 @end
 
@@ -253,7 +257,7 @@ static const NSString *ExternalScreenContext;
                 [self.playerItem addObserver:self forKeyPath:@"status"
                                      options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew
                                      context:&ItemStatusContext];
-                
+
                 if( self.player != nil ) {
                    [self.player replaceCurrentItemWithPlayerItem:self.playerItem];
                 }
@@ -403,6 +407,70 @@ static const NSString *ExternalScreenContext;
     self.isSeeking = NO;
 }
 
+//Seek with guarantees. Added 31/05/2017 by Guillermo
+- (void)stopPlayingAndSeekSmoothlyToTime:(CMTime)newChaseTime
+{
+    if (!_isSeeking) {
+//        [self->_player pause];
+        
+        if (CMTIME_COMPARE_INLINE(newChaseTime, !=, self->_chaseTime))
+        {
+            self->_chaseTime = newChaseTime;
+            
+            if (!self->_isSmoothlySeeking)
+                [self trySeekToChaseTime];
+        }
+    }
+}
+
+- (void)trySeekToChaseTime
+{
+//    if (_player.currentItem.status == AVPlayerItemStatusUnknown)
+//    {
+//        // wait until item becomes ready (KVO player.currentItem.status)
+//        [self.playerItem addObserver:self forKeyPath:@"status"
+//                             options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew context:&StatusSeekContext];
+//        _addedSeekObserver = YES;
+//    }
+//    else if (_player.currentItem.status == AVPlayerItemStatusReadyToPlay && !_isSeeking)
+//    {
+//        [self actuallySeekToTime];
+//    }
+    if (_player.rate != 0)
+    {
+        [self actuallySeekToTime];
+    }
+    else if (!_isSeeking)
+    {
+        // wait until item becomes ready (KVO player.currentItem.status)
+        [self.player addObserver:self forKeyPath:@"rate"
+                             options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew context:&StatusSeekContext];
+        _addedSeekObserver = YES;
+    }
+}
+
+- (void)actuallySeekToTime
+{
+    self->_isSmoothlySeeking = YES;
+    CMTime seekTimeInProgress = self->_chaseTime;
+    [self->_player seekToTime:seekTimeInProgress toleranceBefore:kCMTimeZero
+              toleranceAfter:kCMTimeZero completionHandler:
+     ^(BOOL isFinished)
+     {
+         if (_addedSeekObserver == YES) {
+//             [self.playerItem removeObserver:self forKeyPath:@"status" context:&StatusSeekContext];
+             [self.player removeObserver:self forKeyPath:@"rate" context:&StatusSeekContext];
+             _addedSeekObserver = NO;
+         }
+         if (CMTIME_COMPARE_INLINE(seekTimeInProgress, ==, self->_chaseTime)) {
+             self->_isSmoothlySeeking = NO;
+         }
+         else
+             [self trySeekToChaseTime];
+     }];
+}
+//////
+
 - (void)updateProgressIndicator:(id)sender {
     CGFloat duration = CMTimeGetSeconds(self.playerItem.asset.duration);
     
@@ -439,7 +507,8 @@ static const NSString *ExternalScreenContext;
         
         [self.currentTimeLabel setText:currentTimeString];
         [self.remainingTimeLabel setText:[NSString stringWithFormat:@"-%@", remainingTimeString]];
-        
+        self.currentTimeLabel.hidden = NO;
+        self.remainingTimeLabel.hidden = NO;
     }
 }
 
@@ -565,6 +634,8 @@ static const NSString *ExternalScreenContext;
         [self.player addObserver:self forKeyPath:@"timeControlStatus"
                          options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew context:&TimeControlStatusContext];
     }
+    //Added for smoothly seeking
+    _addedSeekObserver = NO;
     
     [self.player addObserver:self forKeyPath:@"externalPlaybackActive"
                      options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew context:&ExternalScreenContext];
@@ -576,6 +647,8 @@ static const NSString *ExternalScreenContext;
     }];
     
     self.playerView.player = self.player;
+    self.player.allowsExternalPlayback = YES;
+    self.player.usesExternalPlaybackWhileExternalScreenIsActive = YES;
     self.playerView.videoFillMode = AVLayerVideoGravityResizeAspect;
     
 }
@@ -837,6 +910,14 @@ static const NSString *ExternalScreenContext;
                                self.airPlayMessageLabel = nil;
                                NSLog(@"airplay label REMOVED");
                            });
+        }
+    }
+    else if (context == &StatusSeekContext) {
+//        if (_player.currentItem.status == AVPlayerItemStatusReadyToPlay) {
+//            [self trySeekToChaseTime];
+//        }
+        if (_player.rate != 0) {
+            [self trySeekToChaseTime];
         }
     }
     else {
