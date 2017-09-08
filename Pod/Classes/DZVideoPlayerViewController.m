@@ -121,7 +121,7 @@ static const NSString *StatusSeekContext;
     [self setupActions];
     [self setupNotifications];
     [self setupAudioSession];
-    // [self setupPlayer];
+    [self setupPlayer];
     [self setupRemoteCommandCenter];
     [self syncUI];
 }
@@ -259,6 +259,8 @@ static const NSString *StatusSeekContext;
                                      context:&ItemStatusContext];
 
                 if( self.player != nil ) {
+                    self.player.usesExternalPlaybackWhileExternalScreenIsActive = YES;
+                    self.player.allowsExternalPlayback = YES;
                    [self.player replaceCurrentItemWithPlayerItem:self.playerItem];
                 }
                 else {
@@ -621,6 +623,9 @@ static const NSString *StatusSeekContext;
         // self.player = [[AVQueuePlayer alloc] initWithPlayerItem:nil];
     }
     
+    self.player.usesExternalPlaybackWhileExternalScreenIsActive = YES;
+    self.player.allowsExternalPlayback = YES;
+    
     [self setMuted:_isMuted];
     
     [self.player addObserver:self forKeyPath:@"rate"
@@ -647,8 +652,6 @@ static const NSString *StatusSeekContext;
     }];
     
     self.playerView.player = self.player;
-    self.player.allowsExternalPlayback = YES;
-    self.player.usesExternalPlaybackWhileExternalScreenIsActive = YES;
     self.playerView.videoFillMode = AVLayerVideoGravityResizeAspect;
     
 }
@@ -663,11 +666,12 @@ static const NSString *StatusSeekContext;
     
     NSError *setCategoryError = nil;
     BOOL success = [audioSession setCategory:AVAudioSessionCategoryPlayback error:&setCategoryError];
-    if (!success) { /* handle the error condition */ }
+    
+    if (!success) {[self onFailedToLoadAssetWithError:setCategoryError]; /* handle the error condition */}
     
     NSError *activationError = nil;
     success = [audioSession setActive:YES error:&activationError];
-    if (!success) { /* handle the error condition */ }
+    if (!success) { [self onFailedToLoadAssetWithError:setCategoryError]; /* handle the error condition */ }
     
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(handleAVAudioSessionInterruptionNotification:)
@@ -855,11 +859,15 @@ static const NSString *StatusSeekContext;
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
     if (context == &ItemStatusContext) {
-//        AVPlayerItemStatus status = [change[NSKeyValueChangeNewKey] integerValue];
+        //        AVPlayerItemStatus status = [change[NSKeyValueChangeNewKey] integerValue];
         if (self.player.currentItem.status == AVPlayerItemStatusReadyToPlay) {
-                   [self.activityIndicatorView stopAnimating];
-                   [self play];
-                   }
+            [self.activityIndicatorView stopAnimating];
+            [self play];
+        }
+        else if (self.player.currentItem.status == AVPlayerItemStatusFailed) {
+            [self.activityIndicatorView stopAnimating];
+            [self onFailedToLoadAssetWithError:self.player.currentItem.error];
+        }
         dispatch_async(dispatch_get_main_queue(),
                        ^{
                            [self syncUI];
@@ -867,16 +875,16 @@ static const NSString *StatusSeekContext;
     }
     else if (context == &PlayerRateContext) {
         float rate = [change[NSKeyValueChangeNewKey] floatValue];
-//        dispatch_async(dispatch_get_main_queue(),
-//                       ^{
-//                           if (rate > 0) {
-//                               [self.activityIndicatorView stopAnimating];
-//                           }
-//                       });
+        //        dispatch_async(dispatch_get_main_queue(),
+        //                       ^{
+        //                           if (rate > 0) {
+        //                               [self.activityIndicatorView stopAnimating];
+        //                           }
+        //                       });
         
     }
     else if (context == &PlayerStatusContext) {
-//        AVPlayerStatus status = [change[NSKeyValueChangeNewKey] integerValue];
+        //        AVPlayerStatus status = [change[NSKeyValueChangeNewKey] integerValue];
         dispatch_async(dispatch_get_main_queue(),
                        ^{
                            [self syncUI];
@@ -889,7 +897,6 @@ static const NSString *StatusSeekContext;
     }
     else if (context == &ExternalScreenContext) {
         if (self.player.externalPlaybackActive == YES) {
-            
             dispatch_async(dispatch_get_main_queue(),
                            ^{
                                self.airPlayMessageLabel = [[UILabel alloc] initWithFrame:CGRectMake(100, 100, 120, 30)];
