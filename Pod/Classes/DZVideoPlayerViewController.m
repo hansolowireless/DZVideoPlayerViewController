@@ -38,6 +38,8 @@ static const NSString *StatusSeekContext;
 @property(nonatomic, readwrite) CMTime chaseTime;
 @property (assign, nonatomic) BOOL isSmoothlySeeking;
 @property (assign, nonatomic) BOOL addedSeekObserver;
+@property (assign, nonatomic) BOOL didInitialSeek;
+@property (assign, nonatomic) NSTimeInterval initialPlayPosition;
 
 @end
 
@@ -124,6 +126,8 @@ static const NSString *StatusSeekContext;
     [self setupPlayer];
     [self setupRemoteCommandCenter];
     [self syncUI];
+    
+    self.bottomToolbarView.hidden = TRUE;
 }
 
 - (void)viewDidAppear:(BOOL)animated {
@@ -229,7 +233,7 @@ static const NSString *StatusSeekContext;
 
 #pragma mark - Public Actions
 
-- (void)prepareAndPlayAutomatically:(BOOL)playAutomatically withAsset: (AVURLAsset *)videoAsset {
+- (void)prepareAndPlayAutomatically:(BOOL)playAutomatically withAsset: (AVURLAsset *)videoAsset andInitialPlayPosition:(NSTimeInterval)playPosition {
     
     [self.activityIndicatorView startAnimating];
     
@@ -243,9 +247,8 @@ static const NSString *StatusSeekContext;
   
 //    self.asset = [[AVURLAsset alloc] initWithURL:self.videoURL options:nil];
     self.asset = videoAsset;
-
+    self.initialPlayPosition = playPosition;
     NSString *playableKey = @"playable";
-    
     [_asset loadValuesAsynchronouslyForKeys:@[playableKey] completionHandler:^{
         dispatch_async(dispatch_get_main_queue(), ^{
             NSError *error;
@@ -409,12 +412,11 @@ static const NSString *StatusSeekContext;
     self.isSeeking = NO;
 }
 
-//Seek with guarantees. Added 31/05/2017 by Guillermo
+//Seek safely to time. Added 31/05/2017 by Guillermo
 - (void)stopPlayingAndSeekSmoothlyToTime:(CMTime)newChaseTime
 {
+    //Hide bottom toolbar
     if (!_isSeeking) {
-//        [self->_player pause];
-        
         if (CMTIME_COMPARE_INLINE(newChaseTime, !=, self->_chaseTime))
         {
             self->_chaseTime = newChaseTime;
@@ -427,28 +429,20 @@ static const NSString *StatusSeekContext;
 
 - (void)trySeekToChaseTime
 {
-//    if (_player.currentItem.status == AVPlayerItemStatusUnknown)
-//    {
-//        // wait until item becomes ready (KVO player.currentItem.status)
-//        [self.playerItem addObserver:self forKeyPath:@"status"
-//                             options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew context:&StatusSeekContext];
-//        _addedSeekObserver = YES;
-//    }
-//    else if (_player.currentItem.status == AVPlayerItemStatusReadyToPlay && !_isSeeking)
+
+    [self actuallySeekToTime];
+
+//    if (_player.rate != 0)
 //    {
 //        [self actuallySeekToTime];
 //    }
-    if (_player.rate != 0)
-    {
-        [self actuallySeekToTime];
-    }
-    else if (!_isSeeking)
-    {
-        // wait until item becomes ready (KVO player.currentItem.status)
-        [self.player addObserver:self forKeyPath:@"rate"
-                             options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew context:&StatusSeekContext];
-        _addedSeekObserver = YES;
-    }
+//    else if (!_isSeeking)
+//    {
+//        // wait until item becomes ready (KVO player.currentItem.status)
+//        [self.player addObserver:self forKeyPath:@"rate"
+//                             options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew context:&StatusSeekContext];
+//        _addedSeekObserver = YES;
+//    }
 }
 
 - (void)actuallySeekToTime
@@ -460,12 +454,14 @@ static const NSString *StatusSeekContext;
      ^(BOOL isFinished)
      {
          if (_addedSeekObserver == YES) {
-//             [self.playerItem removeObserver:self forKeyPath:@"status" context:&StatusSeekContext];
              [self.player removeObserver:self forKeyPath:@"rate" context:&StatusSeekContext];
              _addedSeekObserver = NO;
          }
          if (CMTIME_COMPARE_INLINE(seekTimeInProgress, ==, self->_chaseTime)) {
              self->_isSmoothlySeeking = NO;
+             [self pause];
+             self->_didInitialSeek = YES;
+             [self displayBottomBar:TRUE];
          }
          else
              [self trySeekToChaseTime];
@@ -586,6 +582,13 @@ static const NSString *StatusSeekContext;
     if (!self.isControlsHidden) {
         [self startIdleCountdown];
     }
+}
+
+- (void) displayBottomBar: (BOOL) show {
+    dispatch_async(dispatch_get_main_queue(),
+                   ^{
+                       self.bottomToolbarView.hidden = !show;
+                   });
 }
 
 - (void)updateNowPlayingInfo {
@@ -859,10 +862,30 @@ static const NSString *StatusSeekContext;
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
     if (context == &ItemStatusContext) {
-        //        AVPlayerItemStatus status = [change[NSKeyValueChangeNewKey] integerValue];
+
         if (self.player.currentItem.status == AVPlayerItemStatusReadyToPlay) {
             [self.activityIndicatorView stopAnimating];
-            [self play];
+ 
+//            if (self.didInitialSeek == NO) {
+//                dispatch_async(dispatch_get_main_queue(),
+//                               ^{
+//                                   self.bottomToolbarView.hidden = FALSE;
+//                               });
+//                [self play];
+//            }
+//            else {
+//                self.didInitialSeek = NO;
+//            }
+            
+            if (self.initialPlayPosition != 0 && _asset != nil) {
+                CMTimeScale timeScale = _asset.duration.timescale;
+                CMTime vodPlayPositionCMTime = CMTimeMakeWithSeconds(self.initialPlayPosition, timeScale);
+                [self stopPlayingAndSeekSmoothlyToTime:vodPlayPositionCMTime];
+            }
+            else {
+                [self displayBottomBar:TRUE];
+                [self play];
+            }
         }
         else if (self.player.currentItem.status == AVPlayerItemStatusFailed) {
             [self.activityIndicatorView stopAnimating];

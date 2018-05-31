@@ -58,7 +58,7 @@
 
 + (NSString *)nibNameForStyle:(DZVideoPlayerViewControllerStyle)style;
 
-- (void)prepareAndPlayAutomatically:(BOOL)playAutomatically withAsset: (AVURLAsset *)videoAsset;
+- (void)prepareAndPlayAutomatically:(BOOL)playAutomatically withAsset: (AVURLAsset *)videoAsset andInitialPlayPosition:(NSTimeInterval)playPosition;
 
 - (void)play;
 
